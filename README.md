@@ -649,44 +649,6 @@ This application is designed to be deployed as a full-stack application with sep
    - Refresh the page
    - Order should still be there (data persisted to Railway PostgreSQL)
 
----
-
-### Alternative Deployment Options
-
-#### Option 1: Render (All-in-One)
-
-**Backend + Frontend on Render:**
-- Free tier available
-- PostgreSQL database (free for 90 days)
-- Steps:
-  1. Deploy backend as Web Service
-  2. Deploy frontend as Static Site
-  3. Add PostgreSQL database
-
-**Cost**: FREE (database expires after 90 days)
-
-#### Option 2: Netlify (Frontend) + Railway (Backend)
-
-**Similar to Vercel + Railway:**
-- Netlify Configuration:
-  - Build command: `npm run build`
-  - Publish directory: `frontend/build`
-  - Base directory: `frontend`
-
-**Cost**: FREE
-
----
-
-### Deployment Comparison
-
-| Platform | Backend | Frontend | Database | Free Tier | Best For |
-|----------|---------|----------|----------|-----------|----------|
-| **Railway + Vercel** | Railway | Vercel | Railway | $5 credit/mo | Recommended ✅ |
-| **Render** | Render | Render | Render | 90 days DB | Simplicity |
-| **Railway Only** | Railway | Railway | Railway | $5 credit/mo | Single platform |
-| **Netlify + Railway** | Railway | Netlify | Railway | $5 credit/mo | Alternative |
-
----
 
 ### Post-Deployment Checklist
 
@@ -753,24 +715,6 @@ REACT_APP_API_URL=https://your-backend.up.railway.app/api
 - Ensure migration script ran successfully
 
 ---
-
-### Cost Breakdown
-
-**Free Tier Limits:**
-
-**Railway:**
-- $5 credit per month (resets monthly)
-- ~500 hours of usage
-- Sufficient for small applications
-- No credit card required initially
-
-**Vercel:**
-- Unlimited deployments
-- 100 GB bandwidth per month
-- Serverless function execution included
-- No credit card required
-
-**Total Monthly Cost: $0** for small-scale applications
 
 ## Assumptions and Design Decisions
 
@@ -1042,14 +986,6 @@ If port conflict during tests, make sure no server is running on port 5000.
 
 This is an assignment project. No contributions are expected.
 
-## License
-
-MIT
-
-## Contact
-
-For questions or issues, please open a GitHub issue or contact the developer.
-
 ---
 
-**Built with ❤️ for CheckMinistry Coding Assignment**
+**Built with ❤️ for CheckMinistry By Rajesh Sharma**
