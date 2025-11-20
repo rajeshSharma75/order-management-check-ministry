@@ -514,11 +514,15 @@ npm test -- --coverage
 
 ## Deployment
 
-This application is designed to be deployed as a full-stack application with separate hosting for backend and frontend.
+This application uses a **monorepo structure** but deploys backend and frontend **separately**:
+- **Backend (Node.js + Express + PostgreSQL)**: Deploy on Railway
+- **Frontend (React)**: Deploy on Vercel
+
+The repository includes a `railway.json` file configured for backend-only deployment. The root `package.json` build script is optimized for Railway backend deployment.
 
 ### Recommended Architecture: Railway (Backend) + Vercel (Frontend)
 
-**Total Cost: FREE**
+**Total Cost: FREE** (Railway $5/month credit + Vercel free tier)
 
 ---
 
@@ -529,6 +533,8 @@ This application is designed to be deployed as a full-stack application with sep
 - Railway account (sign up at [railway.app](https://railway.app))
 - Code pushed to GitHub repository
 
+**Important Note:** This project is configured to deploy **backend only** on Railway. The `railway.json` file and root `package.json` are set up for backend deployment. Frontend will be deployed separately on Vercel.
+
 **Deployment Steps:**
 
 1. **Create New Project on Railway**
@@ -536,45 +542,90 @@ This application is designed to be deployed as a full-stack application with sep
    - Click "New Project"
    - Select "Deploy from GitHub repo"
    - Authorize Railway to access your GitHub
-   - Select your repository
+   - Select your repository: `order-management-check-ministry`
 
-2. **Configure Service Settings**
-   - Service Type: `Web Service`
-   - Root Directory: `.` (root)
-   - Build Command: `npm install && npm run db:setup`
-   - Start Command: `npm start`
-   - Watch Paths: Leave default
-
-3. **Add PostgreSQL Database** (if not already added)
+2. **Add PostgreSQL Database First**
    - Click "New" → "Database" → "Add PostgreSQL"
-   - Railway will automatically create database and set environment variables
-   - OR use your existing Railway PostgreSQL instance
+   - Railway will automatically create database and generate credentials
+   - Wait for database to be provisioned
+
+3. **Configure Backend Service**
+
+   Railway will automatically detect the `railway.json` configuration file which specifies:
+   - Start Command: `node backend/server.js`
+   - Build Command: `npm install` (automatic)
+
+   **No manual configuration needed** - Railway uses the `railway.json` file in the root directory.
 
 4. **Set Environment Variables**
 
-   Click on your service → "Variables" tab → "Raw Editor", then add:
+   Click on your backend service → "Variables" tab, then add:
+
+   **Option 1: Use Railway's PostgreSQL References (Recommended)**
    ```
-   DB_HOST=<your-railway-postgres-host>
-   DB_PORT=<your-railway-postgres-port>
-   DB_NAME=railway
-   DB_USER=postgres
-   DB_PASSWORD=<your-railway-postgres-password>
+   DB_HOST=${{Postgres.PGHOST}}
+   DB_PORT=${{Postgres.PGPORT}}
+   DB_NAME=${{Postgres.PGDATABASE}}
+   DB_USER=${{Postgres.PGUSER}}
+   DB_PASSWORD=${{Postgres.PGPASSWORD}}
    PORT=5000
    NODE_ENV=production
    FRONTEND_URL=https://your-app-name.vercel.app
    ```
 
-   **Note**: Railway automatically provides database credentials if you add PostgreSQL from their dashboard. Check the "Variables" tab of your PostgreSQL service.
+   **Option 2: Manual Configuration**
+   ```
+   DB_HOST=<from-railway-postgres-service>
+   DB_PORT=5432
+   DB_NAME=railway
+   DB_USER=postgres
+   DB_PASSWORD=<from-railway-postgres-service>
+   PORT=5000
+   NODE_ENV=production
+   FRONTEND_URL=https://your-app-name.vercel.app
+   ```
 
-5. **Deploy**
+   > **Note**: Get PostgreSQL credentials from your PostgreSQL service → "Variables" tab
+
+5. **Run Database Migration**
+
+   After first deployment, run the database setup:
+
+   **Method 1: Railway CLI (Recommended)**
+   ```bash
+   # Install Railway CLI
+   npm install -g @railway/cli
+
+   # Login to Railway
+   railway login
+
+   # Link to your project
+   railway link
+
+   # Run database setup
+   railway run npm run db:setup
+   ```
+
+   **Method 2: One-time Deploy Command**
+   - Go to Railway dashboard → Your service → "Settings"
+   - Temporarily change "Start Command" to: `npm run db:setup && node backend/server.js`
+   - Wait for deployment to complete
+   - Change back to: `node backend/server.js`
+   - Redeploy
+
+6. **Verify Backend Deployment**
    - Railway automatically deploys on push to main branch
    - Get your backend URL: `https://your-app-name.up.railway.app`
-   - Test your API: `https://your-app-name.up.railway.app/api/products`
+   - Test API endpoints:
+     - Products: `https://your-app-name.up.railway.app/api/products`
+     - Health check: `https://your-app-name.up.railway.app/api/order`
 
-6. **Monitor Deployment**
+   You should see a JSON response with product data.
+
+7. **Monitor Deployment**
    - Check "Deployments" tab for build logs
-   - Check "Metrics" tab for usage
-   - View logs in "Logs" tab
+   - Check "Observability" tab for runtime logs
+   - Check "Metrics" tab for resource usage
 
 ---
 
@@ -703,14 +754,70 @@ This application is designed to be deployed as a full-stack application with sep
 
 ---
 
+### Deployment Configuration Files
+
+This project includes specific configuration files for deployment:
+
+#### 1. `railway.json` (Backend Configuration)
+Located in the root directory, this file tells Railway how to deploy the backend:
+
+```json
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "node backend/server.js",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}
+```
+
+#### 2. Root `package.json`
+The build script in the root `package.json` is configured for backend-only deployment:
+
+```json
+{
+  "scripts": {
+    "build": "echo 'Backend only - no build needed'",
+    "start": "node backend/server.js"
+  }
+}
+```
+
+This prevents Railway from trying to build the React frontend, which will be deployed separately on Vercel.
+
+#### 3. Frontend `package.json`
+Located in `/frontend/package.json`, this contains the React build scripts used by Vercel:
+
+```json
+{
+  "scripts": {
+    "build": "react-scripts build",
+    "start": "react-scripts start"
+  }
+}
+```
+
+**Why separate deployments?**
+- Backend needs Node.js runtime and PostgreSQL database
+- Frontend is a static React app that benefits from Vercel's CDN
+- Separating allows independent scaling and deployment
+- Frontend can be cached globally for faster load times
+
+---
+
 ### Continuous Deployment
 
 Both Railway and Vercel support **automatic deployments**:
 
-- **Push to GitHub** → Automatically triggers deployment
+- **Push to GitHub** → Automatically triggers deployment on both platforms
 - **No manual steps needed** after initial setup
 - **Preview deployments** for pull requests (Vercel)
 - **Rollback** to previous deployments if needed
+- **Build logs** available in real-time on both platforms
 
 ---
 
@@ -737,20 +844,80 @@ REACT_APP_API_URL=https://your-backend.up.railway.app/api
 
 ### Troubleshooting Deployment
 
-**Backend not responding:**
-- Check Railway deployment logs
-- Verify environment variables are set correctly
-- Ensure database migration ran successfully (`npm run db:setup`)
+#### Railway Build Failures
 
-**Frontend can't connect to backend:**
-- Check CORS configuration in backend
-- Verify `FRONTEND_URL` in Railway matches Vercel URL
-- Verify `REACT_APP_API_URL` in Vercel points to Railway backend
+**Error: "react-scripts: not found" or frontend build errors:**
+- ✅ **Solution**: This is expected! The project is configured for backend-only deployment.
+- Verify `railway.json` exists in root directory
+- Verify root `package.json` has `"build": "echo 'Backend only - no build needed'"`
+- Railway should run `npm install` and then `node backend/server.js`
+
+**Error: "Cannot find module 'express'":**
+- Backend dependencies not installed
+- Check Railway build logs
+- Ensure `npm install` ran successfully
+- Verify all dependencies are in root `package.json`, not `devDependencies`
+
+**Error: Database connection timeout:**
+- PostgreSQL service not added to Railway project
+- Database not fully provisioned yet (wait 1-2 minutes)
+- Environment variables not set correctly
+- Use `${{Postgres.PGHOST}}` syntax for automatic connection
+
+#### Backend Not Responding
+
+**API returns 404 or connection errors:**
+- Check Railway deployment logs for errors
+- Verify environment variables are set correctly
+- Ensure database migration ran successfully (`railway run npm run db:setup`)
+- Check that `PORT` environment variable is set to `5000`
+- Verify service is running (check Railway dashboard)
+
+#### Frontend Deployment Issues
+
+**Frontend can't connect to backend (CORS errors):**
+- Check CORS configuration in `backend/server.js`
+- Verify `FRONTEND_URL` in Railway matches your Vercel URL exactly (no trailing slash)
+- Verify `REACT_APP_API_URL` in Vercel points to Railway backend URL
+- Example: `REACT_APP_API_URL=https://your-backend.up.railway.app/api`
+
+**Vercel build fails:**
+- Check that Root Directory is set to `frontend`
+- Verify Build Command is `npm run build`
+- Verify Output Directory is `build`
+- Check Vercel build logs for specific errors
+
+#### Database Issues
 
 **Database connection errors:**
-- Verify Railway PostgreSQL is running
+- Verify Railway PostgreSQL service is running (green status)
 - Check database credentials in Railway environment variables
+- Test connection: `railway run node -e "require('./backend/config/database')"`
 - Ensure migration script ran successfully
+
+**Tables don't exist:**
+- Run database setup manually: `railway run npm run db:setup`
+- Check migration logs for errors
+- Verify `backend/database/schema.sql` is correct
+
+#### General Debugging
+
+**View logs:**
+```bash
+# Railway CLI
+railway logs
+
+# Or view in Railway dashboard → Service → Logs tab
+```
+
+**Test backend locally with production DB:**
+```bash
+# Link to Railway project
+railway link
+
+# Run locally with Railway environment
+railway run npm run server
+```
 
 ---
 
