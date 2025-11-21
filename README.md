@@ -2,6 +2,9 @@
 
 A full-stack order management system built with Node.js, React (Next.js), and PostgreSQL. This application allows users to create, view, edit, and delete orders with multiple product selections.
 
+## Live Url 
+- https://order-management-check-ministry.vercel.app/
+
 ## Video Demonstration  
 - https://drive.google.com/file/d/1JH_iE_lSiNX3IoN-Fj42pCtzkVWiqrwW/view?usp=sharing
 
